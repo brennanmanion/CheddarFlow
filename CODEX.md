@@ -43,7 +43,7 @@ We are building toward this shape:
 
 ## Default Stack For New Backend Work
 
-- Java 21
+- Java 17
 - Spring Boot 3
 - Spring Web
 - Spring Actuator

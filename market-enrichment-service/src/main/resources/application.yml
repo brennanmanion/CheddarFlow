@@ -1,0 +1,36 @@
+spring:
+  application:
+    name: market-enrichment-service
+  datasource:
+    url: ${CHEDDARFLOW_DB_URL:jdbc:postgresql://localhost:5432/cheddarflow}
+    username: ${CHEDDARFLOW_DB_USERNAME:cheddarflow}
+    password: ${CHEDDARFLOW_DB_PASSWORD:cheddarflow}
+  artemis:
+    mode: native
+    broker-url: ${CHEDDARFLOW_ARTEMIS_BROKER_URL:tcp://localhost:61616}
+    user: ${CHEDDARFLOW_ARTEMIS_USERNAME:artemis}
+    password: ${CHEDDARFLOW_ARTEMIS_PASSWORD:artemis}
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    default-schema: market_enrichment
+    schemas: market_enrichment
+    create-schemas: true
+    table: flyway_schema_history_market_enrichment
+
+server:
+  port: ${SERVER_PORT:8788}
+
+cheddarflow:
+  outbox:
+    relay-delay-ms: ${CHEDDARFLOW_OUTBOX_RELAY_DELAY_MS:1000}
+    batch-size: ${CHEDDARFLOW_OUTBOX_BATCH_SIZE:25}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always

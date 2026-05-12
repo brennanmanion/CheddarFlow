@@ -2,7 +2,7 @@
 
 ## Goal
 
-Plan the next architecture step after browser collection: take captured options-flow events, enrich them with outside market data, and evaluate whether an actionable trade exists.
+Move browser-captured options-flow events through a Java event-driven pipeline: ingestion, enrichment, signal evaluation, and queued execution work.
 
 ## Constraint
 
@@ -14,7 +14,7 @@ Everything after the browser should move to Java and Spring Boot.
 
 Use:
 
-- Java 21
+- Java 17
 - Spring Boot
 - PostgreSQL as the durable system of record for production
 - ActiveMQ Artemis as the queue broker
@@ -104,18 +104,33 @@ Suggested name:
 
 ### 6. Execution Service
 
-Later phase, not immediate.
+This is now part of the implemented stack as a queueing stage, not broker order placement.
 
 Responsibilities:
 
 - consume approved trade candidates
-- apply risk controls
-- send orders to a broker
-- persist order lifecycle state
+- queue execution work items with contract metadata intact
+- publish an execution-request event for later broker integration
+- persist execution lifecycle state
 
 Suggested name:
 
-- `execution-service`
+- `trade-execution-service`
+
+## Current Implemented Services
+
+The repository now contains these Java services:
+
+- `collector-ingestion-service`
+- `market-enrichment-service`
+- `signal-evaluation-service`
+- `trade-execution-service`
+
+The current execution stage is intentionally non-destructive:
+
+- routing mode defaults to `PAPER_REVIEW`
+- no broker orders are submitted yet
+- the pipeline stops at a durable queued execution work item plus `TradeExecutionRequested`
 
 ## Event Flow
 
@@ -145,11 +160,10 @@ Suggested name:
 
 ### Stage 4: Execution
 
-Later:
-
-1. `execution-service` consumes `TradeCandidateCreated`.
-2. It applies risk and account checks.
-3. It submits or rejects the order.
+1. `trade-execution-service` consumes `TradeCandidateCreated`.
+2. It writes an `execution_work_item` row with routing mode `PAPER_REVIEW`.
+3. It publishes `TradeExecutionRequested`.
+4. A later broker-facing service can consume that execution-request event after risk and account controls are added.
 
 ## Queue Plan
 
@@ -158,14 +172,13 @@ Use explicit queues for each stage.
 Suggested logical names:
 
 - `options-flow.captured`
-- `options-flow.enrichment.request`
-- `options-flow.enrichment.completed`
-- `trade-signal.evaluate`
+- `options-flow.enriched`
 - `trade-candidate.created`
-- `trade-execution.request`
+- `trade-execution.requested`
 - `dead-letter.options-flow`
 - `dead-letter.enrichment`
 - `dead-letter.signal`
+- `dead-letter.execution`
 
 In practice, we may use Artemis addresses with bound queues, but the above names are the logical contract.
 
@@ -210,6 +223,7 @@ Fields:
 
 Fields:
 
+- trade candidate ID
 - signal evaluation ID
 - symbol
 - strategy name
@@ -217,6 +231,22 @@ Fields:
 - action
 - confidence
 - risk snapshot ID
+
+### TradeExecutionRequested
+
+Fields:
+
+- trade candidate ID
+- normalized event ID
+- symbol
+- expiry
+- strike
+- put/call
+- action
+- score
+- confidence
+- routing mode
+- execution status
 
 ## Data Storage Plan
 
