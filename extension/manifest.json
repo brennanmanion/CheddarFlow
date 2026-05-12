@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "CheddarFlow Phase 1 Collector",
+  "version": "0.1.0",
+  "description": "Attaches to a logged-in CheddarFlow page and streams options flow rows to a local ingestion service.",
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://*.cheddarflow.com/*",
+    "http://127.0.0.1:8787/*",
+    "http://localhost:8787/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.cheddarflow.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_title": "CheddarFlow Collector"
+  }
+}
